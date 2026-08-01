@@ -39,5 +39,8 @@ venv/
 
 # Do not vendor full HACS / integrations (install via HACS or your fork)
 config/custom_components/
+
+# Ignore HA runtime config; keep only placeholders we track
 config/*
 !config/.gitkeep
+!config/secrets.yaml.example

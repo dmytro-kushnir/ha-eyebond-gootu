@@ -1,0 +1,43 @@
+# Home Assistant runtime / secrets — do not clone machine state
+config/secrets.yaml
+config/.storage/
+config/.cloud/
+config/.cache/
+config/home-assistant_v2.db
+config/home-assistant_v2.db-*
+config/home-assistant.log
+config/home-assistant.log.*
+config/tts/
+config/deps/
+config/backups/
+config/blueprints/
+
+# EyeBond Local bulky / personal capture data
+config/eybond_local/support_packages/
+config/eybond_local/proxy_traces/
+config/www/eybond_local/proxy_traces/
+
+# Host backups volume
+backups/
+*.zip
+
+# Python / editor junk
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Optional: full HACS/integration trees are large; prefer install from GitHub/HACS.
+# Keep local Gootu patch notes in docs; if you vendor custom_components, comment these out.
+# config/custom_components/hacs/
+# config/custom_components/
+
+# Do not vendor full HACS / integrations (install via HACS or your fork)
+config/custom_components/
+config/*
+!config/.gitkeep

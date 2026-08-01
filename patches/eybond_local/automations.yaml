@@ -1,0 +1,29 @@
+# Same content as config/automations.yaml (kept for the patch tree).
+# Apply: already wired via configuration.yaml → automations.yaml
+- id: gootu_cpr_day_on
+  alias: Gootu — day charging (Utility first)
+  description: Allow grid charging during the day (fans less of an issue while away).
+  mode: single
+  trigger:
+    - platform: time
+      at: "09:00:00"
+  action:
+    - action: select.select_option
+      target:
+        entity_id: select.gootu_hybrid_24v_3_7kw_charging_priority
+      data:
+        option: Utility first
+
+- id: gootu_cpr_evening_quiet
+  alias: Gootu — evening/night quiet (PV only)
+  description: PV-only from evening through morning until day automation runs.
+  mode: single
+  trigger:
+    - platform: time
+      at: "18:00:00"
+  action:
+    - action: select.select_option
+      target:
+        entity_id: select.gootu_hybrid_24v_3_7kw_charging_priority
+      data:
+        option: PV only

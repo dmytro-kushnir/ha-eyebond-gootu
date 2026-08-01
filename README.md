@@ -34,4 +34,10 @@ Install HACS + EyeBond Local on each machine (or point HACS at your fork with th
 
 ## Gootu local patch
 
-See [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md). Best long-term: keep the catalog/profile changes in a **fork of ha-eybond-local** and install that via HACS, instead of vendoring all of `custom_components/` here.
+Single file vs upstream: `patches/eybond_local/gootu.patch.json`
+
+```bash
+bash patches/eybond_local/apply.sh
+```
+
+Day/night CPR examples: `patches/eybond_local/automations.yaml`. See [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md).

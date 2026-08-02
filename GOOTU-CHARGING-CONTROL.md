@@ -22,10 +22,13 @@ Rules are in `config/automations.yaml` (mirrored in `patches/eybond_local/automa
 Reload: **Developer Tools → YAML → Check configuration → Automations → Reload**  
 (or restart HA). Then check **Settings → Automations** for both Gootu entries.
 
-| Time | Mode |
+| Time (HA / Kyiv) | Mode |
 |---|---|
 | **09:00** | Utility first |
-| **18:00** | PV only |
+| **21:00** | PV only |
+
+Note: live **Charging Mode Code** `0` corresponds to **PV only** on this Gootu (not the same register as CPR labels, but matches when PV-only is active).
+
 
 To run once now (without waiting): open the automation → **Run**.
 

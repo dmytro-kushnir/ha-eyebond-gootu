@@ -1,5 +1,5 @@
 # Same content as config/automations.yaml (kept for the patch tree).
-# Apply: already wired via configuration.yaml → automations.yaml
+# Quiet from 21:00; day charge from 09:00 (HA / Europe/Kyiv time).
 - id: gootu_cpr_day_on
   alias: Gootu — day charging (Utility first)
   description: Allow grid charging during the day (fans less of an issue while away).
@@ -16,11 +16,11 @@
 
 - id: gootu_cpr_evening_quiet
   alias: Gootu — evening/night quiet (PV only)
-  description: PV-only from evening through morning until day automation runs.
+  description: PV-only from 21:00 through morning until day automation runs.
   mode: single
   trigger:
     - platform: time
-      at: "18:00:00"
+      at: "21:00:00"
   action:
     - action: select.select_option
       target:

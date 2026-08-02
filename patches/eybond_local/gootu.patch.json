@@ -119,8 +119,8 @@
     "day_option": "Utility first",
     "quiet_option": "PV only",
     "day_start": "09:00:00",
-    "quiet_start": "18:00:00",
+    "quiet_start": "21:00:00",
     "timezone_note": "Uses Home Assistant local time (Europe/Kyiv via Docker TZ).",
-    "idea": "Day: allow grid charging (fans ok while away). Evening→morning: PV only for quiet nights."
+    "idea": "Day from 09:00: Utility first. From 21:00 through morning: PV only (quiet)."
   }
 }

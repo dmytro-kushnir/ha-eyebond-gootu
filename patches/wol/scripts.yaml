@@ -1,0 +1,9 @@
+wake_ubuntu_pc:
+  alias: Wake Ubuntu PC
+  mode: single
+  sequence:
+    - action: wake_on_lan.send_magic_packet
+      data:
+        mac: "<WOL_TARGET_MAC>"
+        broadcast_address: "<LAN_BROADCAST_IP>"
+        broadcast_port: 9

@@ -2,6 +2,10 @@ services:
   homeassistant:
     container_name: homeassistant
     image: ghcr.io/home-assistant/home-assistant:stable
+    # host networking required for:
+    # - EyeBond Local TCP :8899 on the LAN
+    # - Wake-on-LAN magic packet broadcast (bridge network cannot send real LAN broadcasts)
+    # privileged: true is NOT required when using network_mode: host
     restart: unless-stopped
     network_mode: host
     environment:
@@ -9,3 +13,8 @@ services:
     volumes:
       - ./config:/config
       - ./backups:/config/backups
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,8 @@
+# Add these to configuration.yaml on the Pi HA host:
+
+wake_on_lan:
+
+input_button:
+  wake_ubuntu_pc:
+    name: Wake Ubuntu PC
+    icon: mdi:desktop-classic

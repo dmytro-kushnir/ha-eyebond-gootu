@@ -9,8 +9,8 @@ HA host: **<ha_host_ip>** (`http://<ha_host_ip>:8123`)
 
 | IP | Hostname / chip | MAC | Ping | HTTP | TCP 8899 | Assessment |
 |---|---|---|---|---|---|---|
-| **<collector_ip_1>** | Bouffalolab_BL602 | `<collector_mac>` | OK (ttl=64) | refused | closed | **Primary candidate** — EyeBond WFBLE modules commonly use BL602 |
-| **<collector_ip_2>** | BP_WFC_OEM | `<collector_mac_alt>` | OK (ttl=255) | refused | closed | Secondary — name suggests WiFi collector OEM; confirm with EyeBond Local scan |
+| **<collector_ip_1>** | Bouffalolab_BL602 | `<collector_mac_1>` | OK (ttl=64) | refused | closed | **Primary candidate** — EyeBond WFBLE modules commonly use BL602 |
+| **<collector_ip_2>** | BP_WFC_OEM | `<collector_mac_2>` | OK (ttl=255) | refused | closed | Secondary — name suggests WiFi collector OEM; confirm with EyeBond Local scan |
 
 Neither host exposes a web UI or listens on TCP 8899. That is **expected**: EyeBond collectors receive UDP discovery (port **58899**) and then open an **outbound** TCP connection to Home Assistant on **8899**.
 
@@ -41,8 +41,8 @@ PING <collector_ip_2> (<collector_ip_2>) 56(84) bytes of data.
 ## Neighbor / MAC
 
 ```
-<collector_ip_2> dev enp4s0 lladdr <collector_mac_alt>
-<collector_ip_1> dev enp4s0 lladdr <collector_mac>
+<collector_ip_2> dev <lan_iface> lladdr <collector_mac_2>
+<collector_ip_1> dev <lan_iface> lladdr <collector_mac_1>
 ```
 
 ## TCP port scan

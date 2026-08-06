@@ -1,0 +1,8 @@
+- id: wake_ubuntu_pc_button
+  alias: Wake Ubuntu PC (button)
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_button.wake_ubuntu_pc
+  action:
+    - service: script.wake_ubuntu_pc

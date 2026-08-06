@@ -1,0 +1,44 @@
+# Optional extras — merge into config/automations.yaml after EyeBond is configured.
+# Replace entity_ids with the ones from your HA instance (Developer Tools → States).
+
+- id: eybond_request_callback_bihourly
+  alias: EyeBond — request collector callback every 2h at :30
+  description: >
+    Reattach DTU session periodically. Runs at xx:30 every 2 hours
+    so it does not collide with Gootu CPR changes (08:00 / 22:00).
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      hours: "/2"
+      minutes: "30"
+  actions:
+    - action: button.press
+      target:
+        # Example: button.collector_192_168_1_181_request_collector_callback
+        entity_id: button.<collector_request_callback_entity>
+
+- id: gootu_notify_charging_priority
+  alias: Gootu — notify charging priority change
+  description: >
+    Push notification when charging priority changes.
+    On HA 2024.6+ use notify.send_message targeting a notify.* entity
+    (not action: notify.<name>, which raises "unknown action").
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: select.gootu_hybrid_24v_3_7kw_charging_priority
+      not_from:
+        - unavailable
+        - unknown
+      not_to:
+        - unavailable
+        - unknown
+  actions:
+    - action: notify.send_message
+      target:
+        # Companion app notify entity, e.g. notify.dk_ha_bd
+        entity_id: notify.<mobile_app_notify_entity>
+      data:
+        message: >-
+          Gootu charging priority: {{ trigger.to_state.state }}
+          (was {{ trigger.from_state.state }})

@@ -42,3 +42,49 @@
         message: >-
           Gootu charging priority: {{ trigger.to_state.state }}
           (was {{ trigger.from_state.state }})
+
+- id: gootu_notify_on_battery
+  alias: Gootu — notify on battery (grid lost)
+  description: >
+    Notify when inverter operating mode switches to battery
+    (grid missing / backup mode). 30s delay avoids poll glitches.
+    Confirm the exact mode string in Developer Tools → States
+    (often "Battery" / "Line").
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: sensor.gootu_hybrid_24v_3_7kw_operating_mode
+      to: Battery
+      for:
+        seconds: 30
+  actions:
+    - action: notify.send_message
+      target:
+        entity_id: notify.<mobile_app_notify_entity>
+      data:
+        message: >-
+          Gootu on battery (grid lost).
+          Mode: {{ trigger.to_state.state }}
+          (was {{ trigger.from_state.state }})
+
+- id: gootu_notify_grid_restored
+  alias: Gootu — notify grid restored
+  description: >
+    Notify when inverter returns to Line/grid mode.
+    30s delay avoids poll glitches.
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: sensor.gootu_hybrid_24v_3_7kw_operating_mode
+      to: Line
+      for:
+        seconds: 30
+  actions:
+    - action: notify.send_message
+      target:
+        entity_id: notify.<mobile_app_notify_entity>
+      data:
+        message: >-
+          Gootu grid restored.
+          Mode: {{ trigger.to_state.state }}
+          (was {{ trigger.from_state.state }})

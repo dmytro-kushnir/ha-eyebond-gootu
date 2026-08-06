@@ -41,3 +41,12 @@ bash patches/eybond_local/apply.sh
 ```
 
 Day/night CPR examples: `patches/eybond_local/automations.yaml`. See [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md).
+
+## Upstream references
+
+This setup extends the upstream EyeBond Local integration:
+
+- Integration repository: `groove-max/ha-eybond-local`  
+  https://github.com/groove-max/ha-eybond-local
+- HACS custom repository docs:  
+  https://www.hacs.xyz/docs/faq/custom_repositories/

@@ -44,3 +44,8 @@ config/custom_components/
 config/*
 !config/.gitkeep
 !config/secrets.yaml.example
+
+# ValueClouds runtime artifacts
+config/shell/.valuecloud_session.json
+config/shell/valuecloud_cpr.log
+config/shell/valuecloud_last_result.txt

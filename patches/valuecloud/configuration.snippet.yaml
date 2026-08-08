@@ -1,0 +1,10 @@
+# ValueCloud CPR (cloud schedule; EyeBond Local not required)
+shell_command:
+  valuecloud_set_cpr: '/config/shell/valuecloud_set_cpr.sh "{{ mode }}"'
+
+command_line:
+  - sensor:
+      name: ValueCloud CPR last
+      unique_id: valuecloud_cpr_last
+      command: "cat /config/shell/valuecloud_last_result.txt 2>/dev/null || echo none"
+      scan_interval: 15

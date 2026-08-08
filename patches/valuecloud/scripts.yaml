@@ -1,0 +1,20 @@
+valuecloud_set_charging_priority:
+  alias: ValueCloud — set charging priority
+  icon: mdi:battery-charging
+  mode: single
+  fields:
+    mode:
+      name: Mode
+      required: true
+      default: PV only
+      selector:
+        select:
+          options:
+            - Utility first
+            - PV first
+            - Utility + PV
+            - PV only
+  sequence:
+    - action: shell_command.valuecloud_set_cpr
+      data:
+        mode: "{{ mode }}"

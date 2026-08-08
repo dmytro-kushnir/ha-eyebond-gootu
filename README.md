@@ -1,6 +1,9 @@
 # Home Assistant + EyeBond (Gootu) — portable setup
 
-Docker Home Assistant on a data disk, with notes for EyeBond Local / Gootu hybrid.
+Docker Home Assistant on a data disk, with notes for:
+
+- **EyeBond Local** (LAN) + Gootu hybrid patch
+- **ValueClouds / SmartValue cloud CPR** helper (schedule charging priority without local polls)
 
 ## Clone on another machine
 
@@ -8,8 +11,8 @@ Docker Home Assistant on a data disk, with notes for EyeBond Local / Gootu hybri
 git clone <your-repo-url> homeassistant
 cd homeassistant
 mkdir -p config backups
-# optional: copy secrets template
-cp config/secrets.yaml.example config/secrets.yaml   # if present
+cp config/secrets.yaml.example config/secrets.yaml
+# edit secrets — never commit the real file
 docker compose pull
 docker compose up -d
 ```
@@ -19,20 +22,37 @@ Open `http://<host-ip>:8123` and finish onboarding.
 ## What is in git
 
 - `docker-compose.yml` — HA stable, `network_mode: host`, `TZ=Europe/Kyiv`
-- Docs: setup, DTU notes, Gootu charging control
+- `patches/eybond_local/` — Gootu catalog/profile patch + local automation examples
+- `patches/valuecloud/` — ValueClouds cloud CPR scripts + HA YAML snippets
+- Docs: setup, DTU notes, [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md)
 - `.gitignore` — excludes DB, `.storage`, secrets, logs, EyeBond support/proxy packages
 
 ## What is NOT in git (on purpose)
 
 - `config/.storage/` (auth, entity registry, tokens)
 - `config/home-assistant_v2.db*`
-- `config/secrets.yaml`
+- `config/secrets.yaml` (credentials, collector PN/SN)
 - `config/eybond_local/support_packages/` and `proxy_traces/`
+- `config/shell/.valuecloud_session.json`, `valuecloud_cpr.log`, result files
 - `backups/`
 
-Install HACS + EyeBond Local on each machine (or point HACS at your fork with the Gootu catalog patch).
+## ValueClouds cloud CPR (optional)
 
-## Gootu local patch
+Small helper — **not** a full HACS integration. Same repo is enough; split out only if you later build a reusable custom component.
+
+```bash
+mkdir -p config/shell
+cp patches/valuecloud/valuecloud_set_cpr.py config/shell/
+cp patches/valuecloud/valuecloud_set_cpr.sh config/shell/
+chmod +x config/shell/valuecloud_set_cpr.sh
+# merge patches/valuecloud/*.yaml snippets; fill secrets.yaml
+```
+
+Details: [patches/valuecloud/README.md](patches/valuecloud/README.md) and [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md).
+
+DTU must remain on the ValueClouds/SmartValue **cloud** for writes to reach the inverter.
+
+## Gootu local patch (EyeBond Local)
 
 Single file vs upstream: `patches/eybond_local/gootu.patch.json`
 
@@ -40,13 +60,9 @@ Single file vs upstream: `patches/eybond_local/gootu.patch.json`
 bash patches/eybond_local/apply.sh
 ```
 
-Day/night CPR examples: `patches/eybond_local/automations.yaml`. See [GOOTU-CHARGING-CONTROL.md](GOOTU-CHARGING-CONTROL.md).
+Install HACS + EyeBond Local on each machine (or point HACS at your fork with the Gootu catalog patch). Day/night local CPR examples: `patches/eybond_local/automations.yaml`.
 
 ## Upstream references
 
-This setup extends the upstream EyeBond Local integration:
-
-- Integration repository: `groove-max/ha-eybond-local`  
-  https://github.com/groove-max/ha-eybond-local
-- HACS custom repository docs:  
-  https://www.hacs.xyz/docs/faq/custom_repositories/
+- EyeBond Local: https://github.com/groove-max/ha-eybond-local  
+- HACS custom repositories: https://www.hacs.xyz/docs/faq/custom_repositories/

@@ -1,10 +1,17 @@
-# ValueCloud CPR (cloud schedule; EyeBond Local not required)
+# ValueCloud CPR + status poll (EyeBond Local not required)
 shell_command:
   valuecloud_set_cpr: '/config/shell/valuecloud_set_cpr.sh "{{ mode }}"'
+  valuecloud_poll_status: '/config/shell/valuecloud_poll_status.sh'
 
+# File sensors — 60s scan to limit SD wear (state only changes on file updates).
 command_line:
   - sensor:
       name: ValueCloud CPR last
       unique_id: valuecloud_cpr_last
       command: "cat /config/shell/valuecloud_last_result.txt 2>/dev/null || echo none"
-      scan_interval: 15
+      scan_interval: 60
+  - sensor:
+      name: ValueCloud mode event
+      unique_id: valuecloud_mode_event
+      command: "cat /config/shell/valuecloud_mode_event.txt 2>/dev/null || echo none"
+      scan_interval: 60

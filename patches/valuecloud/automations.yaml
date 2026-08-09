@@ -1,46 +1,71 @@
-# Cloud CPR schedule (HA timezone). Merge into config/automations.yaml.
-- id: gootu_cpr_day_on
-  alias: Gootu — day charging (Utility first)
-  description: Allow grid charging during the day.
+# Cloud CPR schedule + status poll / notifies (HA timezone).
+# Replace notify.YOUR_NOTIFY_ENTITY.
+#
+# CPR: 08/13/17 Utility first | 11/15/21 PV only (no SoC — unreliable in PV-only)
+# Status poll every 3 min via cloud HTTP (not local G-ASCII bus)
+
+- id: gootu_cpr_schedule
+  alias: Gootu CPR — day/night schedule
+  description: >-
+    Clock-based charging priority (no SoC). Utility first at 08/13/17,
+    PV only at 11/15/21.
   mode: single
   triggers:
     - trigger: time
-      at: "09:00:00"
-  actions:
-    - action: script.valuecloud_set_charging_priority
-      data:
-        mode: Utility first
-
-- id: gootu_cpr_evening_quiet
-  alias: Gootu — evening/night quiet (PV only)
-  description: PV-only from 21:00 through morning until day automation runs.
-  mode: single
-  triggers:
+      at: "08:00:00"
+      id: utility
+    - trigger: time
+      at: "11:00:00"
+      id: pv
+    - trigger: time
+      at: "13:00:00"
+      id: utility
+    - trigger: time
+      at: "15:00:00"
+      id: pv
+    - trigger: time
+      at: "17:00:00"
+      id: utility
     - trigger: time
       at: "21:00:00"
+      id: pv
   actions:
+    - variables:
+        mode: "{% if trigger.id == 'pv' %}PV only{% else %}Utility first{% endif %}"
     - action: script.valuecloud_set_charging_priority
       data:
-        mode: PV only
+        mode: "{{ mode }}"
 
-- id: valuecloud_cpr_finished_notify
-  alias: ValueCloud — notify CPR result
-  description: Fires when background cloud CPR write updates the result file.
+- id: valuecloud_poll_status_every_3m
+  alias: ValueCloud — poll operating mode every 3 min
+  description: Refresh sy_status from ValueClouds for grid-lost / restored notifies.
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      minutes: /3
+  actions:
+    - action: shell_command.valuecloud_poll_status
+
+- id: valuecloud_notify
+  alias: ValueCloud — notify CPR or mode change
+  description: Phone notify when CPR result or Mains↔Battery event file changes.
   mode: single
   triggers:
     - trigger: state
-      entity_id: sensor.valuecloud_cpr_last
+      entity_id:
+        - sensor.valuecloud_cpr_last
+        - sensor.valuecloud_mode_event
       not_to:
         - unknown
         - unavailable
         - none
+        - ""
   conditions:
     - condition: template
       value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
   actions:
     - action: notify.send_message
       target:
-        # Companion app notify entity, e.g. notify.mobile_app_phone
         entity_id: notify.YOUR_NOTIFY_ENTITY
       data:
-        message: "ValueCloud CPR {{ trigger.to_state.state }}"
+        message: "{{ trigger.to_state.state }}"

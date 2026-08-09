@@ -16,12 +16,28 @@ HA switches charging priority by calling the same **ValueClouds / SmartValue** A
 | Piece | Role |
 |---|---|
 | `secrets.yaml` | SmartValue email + password + device `pn` / `sn` |
+| `config/shell/valuecloud_api.py` | Shared login / session / signed requests |
 | `config/shell/valuecloud_set_cpr.sh` | HA entry; runs writer in **background** (HA 60s shell limit) |
-| `config/shell/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result file + log |
+| `config/shell/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result file |
+| `config/shell/valuecloud_poll_status.*` | Poll `sy_status` (Mains / Battery) |
 | Script **ValueCloud — set charging priority** | Manual / automation trigger |
-| `sensor.valuecloud_cpr_last` | Last OK/FAILED line |
-| Notify automation | Phone when result changes |
-| 09:00 / 21:00 automations | Utility first / PV only |
+| `sensor.valuecloud_cpr_last` / `sensor.valuecloud_mode_event` | Result + mode-change event files |
+| Poll every **3 min** | Cloud HTTP status (safe for Wi‑Fi DTU at this rate) |
+| Notify automation | CPR result or Mains↔Battery change |
+| CPR schedule (clock only; SoC unreliable in PV-only) | see table below |
+
+### CPR schedule (Europe/Kyiv)
+
+| Time | Mode | Why |
+|---|---|---|
+| **08:00** | Utility first | Morning top-up from grid |
+| **11:00** | PV only | Rest from grid float |
+| **13:00** | Utility first | Midday grid charge |
+| **15:00** | PV only | Rest again |
+| **17:00** | Utility first | Late-day top-up |
+| **21:00** | PV only | Night quiet until morning |
+
+Do **not** drive CPR from battery % — ValueClouds SoC is wrong while in PV only.
 
 ```text
 Automation or manual script

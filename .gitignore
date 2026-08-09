@@ -49,3 +49,7 @@ config/*
 config/shell/.valuecloud_session.json
 config/shell/valuecloud_cpr.log
 config/shell/valuecloud_last_result.txt
+config/shell/valuecloud_status.log
+config/shell/valuecloud_operating_mode.txt
+config/shell/valuecloud_last_status.json
+config/shell/valuecloud_mode_event.txt

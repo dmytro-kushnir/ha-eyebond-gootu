@@ -3,6 +3,7 @@
 # Optional: VALUECLOUD_DEVCODE, VALUECLOUD_DEVADDR (defaults 2506 / 1)
 #
 # Control: edit HOUR_TO_MODE in valuecloud_schedule_gate.py | Disable workflow | Run workflow
+# Results: open the run → Summary tab
 
 name: ValueCloud CPR
 
@@ -53,9 +54,17 @@ jobs:
 
       - name: Skip off-schedule hour
         if: steps.gate.outputs.mode == 'SKIP'
-        run: echo "Not a CPR schedule hour — nothing to do."
+        run: |
+          {
+            echo "## ValueCloud CPR"
+            echo ""
+            echo "- **Result:** skipped (not a schedule hour in Europe/Kyiv)"
+            echo "- **Event:** \`${{ github.event_name }}\`"
+            echo "- **UTC:** $(date -u +'%Y-%m-%d %H:%M:%SZ')"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Write CPR
+        id: write
         if: steps.gate.outputs.mode != 'SKIP'
         env:
           VALUECLOUD_USERNAME: ${{ secrets.VALUECLOUD_USERNAME }}
@@ -65,6 +74,28 @@ jobs:
           VALUECLOUD_DEVCODE: ${{ secrets.VALUECLOUD_DEVCODE }}
           VALUECLOUD_DEVADDR: ${{ secrets.VALUECLOUD_DEVADDR }}
           VALUECLOUD_SHELL_DIR: ${{ runner.temp }}/valuecloud
+          CPR_MODE: ${{ steps.gate.outputs.mode }}
         run: |
           mkdir -p "$VALUECLOUD_SHELL_DIR"
-          python3 valuecloud_set_cpr.py --mode "${{ steps.gate.outputs.mode }}"
+          set +e
+          python3 valuecloud_set_cpr.py --mode "$CPR_MODE"
+          rc=$?
+          set -e
+          RESULT="(no result file)"
+          if [ -f "$VALUECLOUD_SHELL_DIR/valuecloud_last_result.txt" ]; then
+            RESULT=$(tr -d '\r' < "$VALUECLOUD_SHELL_DIR/valuecloud_last_result.txt" | head -n1)
+          fi
+          {
+            echo "## ValueCloud CPR"
+            echo ""
+            if [ "$rc" -eq 0 ]; then
+              echo "- **Result:** OK"
+            else
+              echo "- **Result:** FAILED"
+            fi
+            echo "- **Mode:** \`$CPR_MODE\`"
+            echo "- **Detail:** \`$RESULT\`"
+            echo "- **Event:** \`${{ github.event_name }}\`"
+            echo "- **UTC:** $(date -u +'%Y-%m-%d %H:%M:%SZ')"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"

@@ -18,6 +18,7 @@ Edit hours/modes in [`valuecloud_schedule_gate.py`](valuecloud_schedule_gate.py)
 - Change schedule → edit `HOUR_TO_MODE` / workflow, commit + push
 - Pause schedule → Actions → **ValueCloud CPR** → ⋯ → Disable workflow
 - One-off write → Actions → **ValueCloud CPR** → Run workflow → pick mode
+- See last result → open a run → **Summary** tab (OK / FAILED / skipped + mode)
 
 **Repo secrets** (Settings → Secrets and variables → Actions):
 

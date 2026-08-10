@@ -74,6 +74,7 @@ jobs:
           VALUECLOUD_SHELL_DIR: ${{ runner.temp }}/valuecloud
         run: |
           mkdir -p "$VALUECLOUD_SHELL_DIR"
+          python3 valuecloud_cred_fp.py
           python3 valuecloud_set_cpr.py --mode "${{ steps.gate.outputs.mode }}"
           {
             echo "result<<EOF"

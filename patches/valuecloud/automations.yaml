@@ -1,17 +1,12 @@
-# HA-side ValueCloud helpers.
+# HA owns the CPR clock (Europe/Kyiv). GitHub Actions is optional backup —
+# keep VALUECLOUD_CPR_ENABLED=false (or disable that workflow) to avoid double-writes.
 # Replace notify.YOUR_NOTIFY_ENTITY.
-#
-# CPR clock schedule is owned by GitHub Actions by default.
-# Keep gootu_cpr_schedule in YAML as fallback — leave it DISABLED in HA UI
-# (or initial_state: false) so it does not double-write with Actions.
 
 - id: gootu_cpr_schedule
   alias: Gootu CPR — day/night schedule
   description: >-
-    Clock-based charging priority (no SoC). Utility first at 08/13/17,
-    PV only at 11/15/21. Prefer GitHub Actions; keep this DISABLED unless
-    Actions is paused.
-  initial_state: false
+    Clock-based charging priority (no SoC). Utility first at 08/14/17,
+    PV only at 11/15/21.
   mode: single
   triggers:
     - trigger: time
@@ -21,7 +16,7 @@
       at: "11:00:00"
       id: pv
     - trigger: time
-      at: "13:00:00"
+      at: "14:00:00"
       id: utility
     - trigger: time
       at: "15:00:00"
@@ -41,7 +36,7 @@
 
 - id: valuecloud_notify
   alias: ValueCloud — notify CPR result
-  description: Phone notify when cloud CPR write updates the result file (manual HA path).
+  description: Phone notify when cloud CPR write updates the result file.
   mode: single
   triggers:
     - trigger: state

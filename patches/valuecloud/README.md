@@ -1,50 +1,17 @@
-# ValueClouds / SmartValue — cloud CPR helper for Home Assistant + GitHub Actions
+# ValueClouds / SmartValue — cloud CPR helper for Home Assistant (+ optional Actions backup)
 #
 # Small shell + Python helper (not a full HACS integration).
 
-## CPR schedule owner: GitHub Actions
+## Primary: Home Assistant on the Pi (recommended)
 
-Clock schedule runs in [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuecloud-cpr.yml) (not HA).
-
-Default Kyiv map (used when the variable is empty):
+HA timezone clock is reliable for on-the-hour CPR. Merge [`automations.yaml`](automations.yaml):
 
 | Time (Europe/Kyiv) | Mode |
 |---|---|
-| 08:00, 13:00, 17:00 | Utility first |
+| 08:00, 14:00, 17:00 | Utility first |
 | 11:00, 15:00, 21:00 | PV only |
 
-### Control without commits (recommended)
-
-Repo → **Settings** → **Secrets and variables** → **Actions** → **Variables**:
-
-| Variable | Purpose |
-|---|---|
-| `VALUECLOUD_CPR_ENABLED` | `true` / `false` — pause **cron** only (`false` = no timed writes) |
-| `VALUECLOUD_CPR_SCHEDULE` | JSON time→mode (Europe/Kyiv). `"13:50"` or hour-only `"13"` (=13:00) |
-
-```json
-{"8:00":"Utility first","11:00":"PV only","13:50":"Utility first","15:00":"PV only","17:00":"Utility first","21:00":"PV only"}
-```
-
-Allowed modes: `Utility first`, `PV first`, `Utility + PV`, `PV only`.  
-Each slot stays active for **55 minutes** so a late Actions cron can still hit it. Save the variable — **no commit / reload**; the next schedule run reads it.
-
-**Note:** Opening an old Actions run → “workflow” file shows the YAML **from that commit**. Current cron is on `master` (`5 * * * *` plus `*/15 * * * *`). Event column `schedule` = cron; GitHub may delay starts by many minutes.
-
-- **Pause timed CPR:** set `VALUECLOUD_CPR_ENABLED=false` (manual **Run workflow** still works)
-- **Change times:** edit `VALUECLOUD_CPR_SCHEDULE`, save — next hourly cron picks it up
-- **One-off write:** Actions → **ValueCloud CPR** → Run workflow → pick mode
-- **Hard stop everything:** Actions → workflow → Disable
-- **See result:** open a run → **Summary** tab
-
-### Repo secrets
-
-- `VALUECLOUD_USERNAME`, `VALUECLOUD_PASSWORD`, `VALUECLOUD_PN`, `VALUECLOUD_SN`
-- Optional: `VALUECLOUD_DEVCODE` (default 2506), `VALUECLOUD_DEVADDR` (default 1)
-
-## Pi / Home Assistant role
-
-Keep HA for WoL, Companion notify on **manual** CPR, and optional one-off script runs. Leave HA automation `gootu_cpr_schedule` **disabled** in the UI while Actions owns the clock (kept in YAML as fallback).
+Keep GitHub Actions **disabled** or `VALUECLOUD_CPR_ENABLED=false` so you do not double-write.
 
 ```bash
 mkdir -p config/shell
@@ -54,13 +21,27 @@ cp patches/valuecloud/valuecloud_set_cpr.sh config/shell/
 chmod +x config/shell/valuecloud_set_cpr.sh
 ```
 
-Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yaml`](scripts.yaml) + [`automations.yaml`](automations.yaml) (notify only); fill `secrets.yaml`.
+Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yaml`](scripts.yaml) + [`automations.yaml`](automations.yaml); fill `secrets.yaml`.  
+Phone notify: `valuecloud_notify` when manual/HA CPR updates the result file.
+
+## Optional backup: GitHub Actions
+
+Workflow [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuecloud-cpr.yml) can still run timed CPR, but GitHub `schedule` is often late/skipped. Use only if the Pi is down:
+
+1. Disable HA automation `gootu_cpr_schedule`
+2. Enable the workflow + set `VALUECLOUD_CPR_ENABLED=true`
+3. Edit `VALUECLOUD_CPR_SCHEDULE` JSON if needed
+
+## Repo secrets (Actions only)
+
+- `VALUECLOUD_USERNAME`, `VALUECLOUD_PASSWORD`, `VALUECLOUD_PN`, `VALUECLOUD_SN`
+- Optional: `VALUECLOUD_DEVCODE` / `VALUECLOUD_DEVADDR`
 
 ## Behaviour
 
-- **Schedule:** GitHub Actions every **15 minutes** + Kyiv gate (DST-safe); at most one write per schedule hour (cache)
+- **Schedule:** HA time triggers (primary)
 - **Manual CPR:** HA script or Actions workflow_dispatch
-- **Notifies:** Actions run Summary; HA file-sensor notify for local manual CPR only
-- **Grid/line poll:** disabled by default (`valuecloud_poll_status.*` kept if you re-enable later)
+- **Notifies:** HA Companion on local CPR result file
+- **Grid/line poll:** disabled by default
 
 DTU must stay on **cloud**. EyeBond Local remains optional under `patches/eybond_local/`.

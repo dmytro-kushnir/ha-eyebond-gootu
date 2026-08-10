@@ -55,7 +55,7 @@ Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yam
 
 ## Behaviour
 
-- **Schedule:** GitHub Actions hourly cron + Kyiv gate (DST-safe), driven by Actions **variables**
+- **Schedule:** GitHub Actions every **15 minutes** + Kyiv gate (DST-safe); at most one write per schedule hour (cache)
 - **Manual CPR:** HA script or Actions workflow_dispatch
 - **Notifies:** Actions run Summary; HA file-sensor notify for local manual CPR only
 - **Grid/line poll:** disabled by default (`valuecloud_poll_status.*` kept if you re-enable later)

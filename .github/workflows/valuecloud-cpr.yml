@@ -1,18 +1,14 @@
 # Gootu CPR via ValueClouds — clock schedule (Europe/Kyiv) + manual dispatch.
-# Secrets: VALUECLOUD_USERNAME, VALUECLOUD_PASSWORD, VALUECLOUD_PN, VALUECLOUD_SN,
-#          VALUECLOUD_DEVCODE (optional), VALUECLOUD_DEVADDR (optional),
-#          HA_URL, HA_TOKEN, HA_NOTIFY_ENTITY (optional, default notify.dk_ha_bd)
+# Secrets: VALUECLOUD_USERNAME, VALUECLOUD_PASSWORD, VALUECLOUD_PN, VALUECLOUD_SN
+# Optional: VALUECLOUD_DEVCODE, VALUECLOUD_DEVADDR (defaults 2506 / 1)
 #
-# Control:
-#   - Edit HOUR_TO_MODE in patches/valuecloud/valuecloud_schedule_gate.py
-#   - Actions → this workflow → Disable to pause schedule
-#   - Actions → Run workflow → pick mode for a one-off write
+# Control: edit HOUR_TO_MODE in valuecloud_schedule_gate.py | Disable workflow | Run workflow
 
 name: ValueCloud CPR
 
 on:
   schedule:
-    # UTC minute 5 every hour; Kyiv gate decides whether to write (DST-safe).
+    # UTC :05 each hour; Kyiv gate decides whether to write (DST-safe).
     - cron: "5 * * * *"
   workflow_dispatch:
     inputs:
@@ -36,11 +32,9 @@ jobs:
       run:
         working-directory: patches/valuecloud
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -62,7 +56,6 @@ jobs:
         run: echo "Not a CPR schedule hour — nothing to do."
 
       - name: Write CPR
-        id: write
         if: steps.gate.outputs.mode != 'SKIP'
         env:
           VALUECLOUD_USERNAME: ${{ secrets.VALUECLOUD_USERNAME }}
@@ -74,32 +67,4 @@ jobs:
           VALUECLOUD_SHELL_DIR: ${{ runner.temp }}/valuecloud
         run: |
           mkdir -p "$VALUECLOUD_SHELL_DIR"
-          python3 valuecloud_cred_fp.py
           python3 valuecloud_set_cpr.py --mode "${{ steps.gate.outputs.mode }}"
-          {
-            echo "result<<EOF"
-            tr -d '\r' < "$VALUECLOUD_SHELL_DIR/valuecloud_last_result.txt" | head -n1
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Notify Home Assistant (success)
-        if: steps.gate.outputs.mode != 'SKIP' && success()
-        env:
-          HA_URL: ${{ secrets.HA_URL }}
-          HA_TOKEN: ${{ secrets.HA_TOKEN }}
-          HA_NOTIFY_ENTITY: ${{ secrets.HA_NOTIFY_ENTITY }}
-          CPR_RESULT: ${{ steps.write.outputs.result }}
-          CPR_MODE: ${{ steps.gate.outputs.mode }}
-        run: |
-          MSG="${CPR_RESULT:-ValueCloud CPR OK ${CPR_MODE} (GitHub Actions)}"
-          python3 notify_ha.py --message "$MSG" || echo "Notify failed (HA may be LAN-only)"
-
-      - name: Notify Home Assistant (failure)
-        if: steps.gate.outputs.mode != 'SKIP' && failure()
-        env:
-          HA_URL: ${{ secrets.HA_URL }}
-          HA_TOKEN: ${{ secrets.HA_TOKEN }}
-          HA_NOTIFY_ENTITY: ${{ secrets.HA_NOTIFY_ENTITY }}
-          CPR_MODE: ${{ steps.gate.outputs.mode }}
-        run: |
-          python3 notify_ha.py --message "ValueCloud CPR FAILED ${CPR_MODE} (GitHub Actions)" || true

@@ -68,7 +68,6 @@ def main() -> int:
     secrets_path = Path(args.secrets) if args.secrets else None
     secrets = vc.resolve_secrets(secrets_path)
     username, password, pn, sn, devcode, devaddr = vc.device_ids(secrets)
-    print(vc.credential_fingerprint(username, password), flush=True)
     val = resolve_mode(args.mode)
     label = VAL_TO_LABEL[val]
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")

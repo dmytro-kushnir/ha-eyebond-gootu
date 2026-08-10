@@ -12,7 +12,6 @@ See [patches/valuecloud/README.md](patches/valuecloud/README.md) and [`.github/w
 | `patches/valuecloud/valuecloud_schedule_gate.py` | Hour → mode map (edit to change schedule) |
 | `patches/valuecloud/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result |
 | Actions secrets `VALUECLOUD_*` | SmartValue credentials + device `pn` / `sn` |
-| Optional `HA_URL` / `HA_TOKEN` | Companion notify after Actions CPR (needs public HA URL) |
 | Pi `script.valuecloud_set_charging_priority` | Manual CPR from HA |
 | Pi `sensor.valuecloud_cpr_last` + notify automation | Companion on **local** manual CPR result file |
 | Pi WoL | Unrelated; keep as-is |
@@ -39,7 +38,6 @@ GitHub Actions (hourly) or workflow_dispatch
         → login api.valueclouds.com
         → ctrlDevice cltd_charging_priority
         → inverter ACK via DTU cloud link
-        → optional HA REST notify
 ```
 
 DTU must stay on **cloud**.

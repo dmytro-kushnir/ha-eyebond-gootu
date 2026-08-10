@@ -23,8 +23,6 @@ Edit hours/modes in [`valuecloud_schedule_gate.py`](valuecloud_schedule_gate.py)
 
 - `VALUECLOUD_USERNAME`, `VALUECLOUD_PASSWORD`, `VALUECLOUD_PN`, `VALUECLOUD_SN`
 - Optional: `VALUECLOUD_DEVCODE` (default 2506), `VALUECLOUD_DEVADDR` (default 1)
-- Optional Companion ping from Actions: `HA_URL`, `HA_TOKEN`, `HA_NOTIFY_ENTITY` (default `notify.dk_ha_bd`)  
-  (`HA_URL` must be reachable from the internet, e.g. Nabu Casa / reverse proxy — LAN-only Pi will skip notify)
 
 ## Pi / Home Assistant role
 
@@ -44,7 +42,7 @@ Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yam
 
 - **Schedule:** GitHub Actions hourly cron + Kyiv gate (DST-safe)
 - **Manual CPR:** HA script or Actions workflow_dispatch
-- **Notifies:** Actions → HA REST (if `HA_URL` public); HA file-sensor notify for local manual CPR
+- **Notifies:** Actions run status in GitHub UI; HA file-sensor notify for local manual CPR only
 - **Grid/line poll:** disabled by default (`valuecloud_poll_status.*` kept if you re-enable later)
 
 DTU must stay on **cloud**. EyeBond Local remains optional under `patches/eybond_local/`.

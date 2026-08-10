@@ -73,18 +73,6 @@ def secrets_from_env() -> dict[str, Any] | None:
     }
 
 
-def credential_fingerprint(username: str, password: str) -> str:
-    """Safe debug line — lengths + short hashes, never the secret itself."""
-    u_sha = hashlib.sha256(username.encode("utf-8")).hexdigest()[:12]
-    p_sha = hashlib.sha256(password.encode("utf-8")).hexdigest()[:12]
-    api12 = password_for_api(password)[:12]
-    return (
-        f"cred_fp username_len={len(username)} user_sha256_12={u_sha} "
-        f"has_at={('@' in username)} password_len={len(password)} "
-        f"pass_sha256_12={p_sha} api_sha1_12={api12}"
-    )
-
-
 def resolve_secrets(secrets_path: Path | None = None) -> dict[str, Any]:
     """Prefer env vars (CI); else HA secrets.yaml."""
     env = secrets_from_env()

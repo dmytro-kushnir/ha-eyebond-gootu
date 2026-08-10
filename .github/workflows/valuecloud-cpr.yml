@@ -5,7 +5,8 @@
 #
 # Variables (Settings → Secrets and variables → Actions → Variables) — no commit needed:
 #   VALUECLOUD_CPR_ENABLED   true|false  (pause cron; manual Run workflow still works)
-#   VALUECLOUD_CPR_SCHEDULE  JSON hour→mode (Europe/Kyiv). Empty → built-in default.
+#   VALUECLOUD_CPR_SCHEDULE  JSON time→mode (Europe/Kyiv), e.g. "13:50" or "13" (=13:00).
+#                            No reload needed after editing; next */15 cron reads it.
 #
 # Cron runs every 15 minutes (GitHub hourly cron is often late/missed). Cache ensures
 # each Kyiv schedule hour writes at most once.

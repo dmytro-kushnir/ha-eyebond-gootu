@@ -20,13 +20,14 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **Variab
 | Variable | Purpose |
 |---|---|
 | `VALUECLOUD_CPR_ENABLED` | `true` / `false` — pause **cron** only (`false` = no timed writes) |
-| `VALUECLOUD_CPR_SCHEDULE` | JSON hour→mode (Europe/Kyiv). Example below |
+| `VALUECLOUD_CPR_SCHEDULE` | JSON time→mode (Europe/Kyiv). `"13:50"` or hour-only `"13"` (=13:00) |
 
 ```json
-{"8":"Utility first","11":"PV only","13":"Utility first","15":"PV only","17":"Utility first","21":"PV only"}
+{"8:00":"Utility first","11:00":"PV only","13:50":"Utility first","15:00":"PV only","17:00":"Utility first","21:00":"PV only"}
 ```
 
-Allowed modes: `Utility first`, `PV first`, `Utility + PV`, `PV only`.
+Allowed modes: `Utility first`, `PV first`, `Utility + PV`, `PV only`.  
+Each slot stays active for **20 minutes** so a late Actions cron can still hit it. Save the variable — **no commit / reload**; the next `*/15` run reads it.
 
 - **Pause timed CPR:** set `VALUECLOUD_CPR_ENABLED=false` (manual **Run workflow** still works)
 - **Change times:** edit `VALUECLOUD_CPR_SCHEDULE`, save — next hourly cron picks it up

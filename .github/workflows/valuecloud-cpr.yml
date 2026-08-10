@@ -81,7 +81,7 @@ jobs:
       - name: Check if this Kyiv hour already wrote
         id: slotcache
         if: steps.gate.outputs.mode != 'SKIP'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/valuecloud-cpr-slot
           key: valuecloud-cpr-${{ steps.gate.outputs.slot }}-${{ steps.gate.outputs.mode }}

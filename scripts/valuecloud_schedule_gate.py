@@ -9,7 +9,7 @@ Variables (Settings → Actions → Variables) — no reload/commit needed; next
     {"8:00":"Utility first","11:00":"PV only","13:50":"Utility first",
      "15:00":"PV only","17:00":"Utility first","21:00":"PV only"}
 
-Hour-only keys like "8" mean 08:00. A slot fires in [time, time+20min) so */15 cron can be late.
+Hour-only keys like "8" mean 08:00. A slot fires in [time, time+55min) so late Actions cron can still hit it.
 Manual --force-mode always runs even when ENABLED=false.
 """
 

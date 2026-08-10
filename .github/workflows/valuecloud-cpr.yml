@@ -1,8 +1,12 @@
 # Gootu CPR via ValueClouds — clock schedule (Europe/Kyiv) + manual dispatch.
-# Secrets: VALUECLOUD_USERNAME, VALUECLOUD_PASSWORD, VALUECLOUD_PN, VALUECLOUD_SN
-# Optional: VALUECLOUD_DEVCODE, VALUECLOUD_DEVADDR (defaults 2506 / 1)
 #
-# Control: edit HOUR_TO_MODE in valuecloud_schedule_gate.py | Disable workflow | Run workflow
+# Secrets: VALUECLOUD_USERNAME, VALUECLOUD_PASSWORD, VALUECLOUD_PN, VALUECLOUD_SN
+# Optional secrets: VALUECLOUD_DEVCODE, VALUECLOUD_DEVADDR
+#
+# Variables (Settings → Secrets and variables → Actions → Variables) — no commit needed:
+#   VALUECLOUD_CPR_ENABLED   true|false  (pause cron; manual Run workflow still works)
+#   VALUECLOUD_CPR_SCHEDULE  JSON hour→mode (Europe/Kyiv). Empty → built-in default.
+#
 # Results: open the run → Summary tab
 
 name: ValueCloud CPR
@@ -43,22 +47,46 @@ jobs:
         id: gate
         env:
           FORCE_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || '' }}
+          VALUECLOUD_CPR_ENABLED: ${{ vars.VALUECLOUD_CPR_ENABLED }}
+          VALUECLOUD_CPR_SCHEDULE: ${{ vars.VALUECLOUD_CPR_SCHEDULE }}
         run: |
           if [ -n "$FORCE_MODE" ]; then
-            MODE=$(python3 valuecloud_schedule_gate.py --force-mode "$FORCE_MODE" | tail -n1)
+            LINE=$(python3 valuecloud_schedule_gate.py --force-mode "$FORCE_MODE" | tail -n1)
           else
-            MODE=$(python3 valuecloud_schedule_gate.py | tail -n1)
+            LINE=$(python3 valuecloud_schedule_gate.py | tail -n1)
           fi
+          case "$LINE" in
+            SKIP:*)
+              MODE=SKIP
+              REASON=${LINE#SKIP:}
+              ;;
+            SKIP)
+              MODE=SKIP
+              REASON=unknown
+              ;;
+            *)
+              MODE=$LINE
+              REASON=
+              ;;
+          esac
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-          echo "Resolved mode: $MODE"
+          echo "reason=$REASON" >> "$GITHUB_OUTPUT"
+          echo "Resolved mode: $MODE reason: ${REASON:-n/a}"
 
-      - name: Skip off-schedule hour
+      - name: Skip (paused / off-schedule)
         if: steps.gate.outputs.mode == 'SKIP'
+        env:
+          SKIP_REASON: ${{ steps.gate.outputs.reason }}
         run: |
+          case "$SKIP_REASON" in
+            paused) LABEL="paused (VALUECLOUD_CPR_ENABLED=false)" ;;
+            not_schedule_hour) LABEL="skipped (not a schedule hour in Europe/Kyiv)" ;;
+            *) LABEL="skipped (${SKIP_REASON:-unknown})" ;;
+          esac
           {
             echo "## ValueCloud CPR"
             echo ""
-            echo "- **Result:** skipped (not a schedule hour in Europe/Kyiv)"
+            echo "- **Result:** $LABEL"
             echo "- **Event:** \`${{ github.event_name }}\`"
             echo "- **UTC:** $(date -u +'%Y-%m-%d %H:%M:%SZ')"
           } >> "$GITHUB_STEP_SUMMARY"

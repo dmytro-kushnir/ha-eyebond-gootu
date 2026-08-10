@@ -9,7 +9,8 @@ See [patches/valuecloud/README.md](patches/valuecloud/README.md) and [`.github/w
 | Piece | Role |
 |---|---|
 | GitHub Actions `ValueCloud CPR` | Clock schedule (Europe/Kyiv) + manual dispatch |
-| `patches/valuecloud/valuecloud_schedule_gate.py` | Hour → mode map (edit to change schedule) |
+| `patches/valuecloud/valuecloud_schedule_gate.py` | Kyiv hour gate; reads Actions variables |
+| Actions variables `VALUECLOUD_CPR_*` | Pause / edit schedule in GitHub UI (no commit) |
 | `patches/valuecloud/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result |
 | Actions secrets `VALUECLOUD_*` | SmartValue credentials + device `pn` / `sn` |
 | Pi `script.valuecloud_set_charging_priority` | Manual CPR from HA |

@@ -4,23 +4,37 @@
 
 ## CPR schedule owner: GitHub Actions
 
-Clock schedule runs in [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuecloud-cpr.yml) (not HA), so the Pi is not required for timed writes.
+Clock schedule runs in [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuecloud-cpr.yml) (not HA).
+
+Default Kyiv map (used when the variable is empty):
 
 | Time (Europe/Kyiv) | Mode |
 |---|---|
 | 08:00, 13:00, 17:00 | Utility first |
 | 11:00, 15:00, 21:00 | PV only |
 
-Edit hours/modes in [`valuecloud_schedule_gate.py`](valuecloud_schedule_gate.py) (`HOUR_TO_MODE`), push, done.
+### Control without commits (recommended)
 
-**Control from GitHub**
+Repo → **Settings** → **Secrets and variables** → **Actions** → **Variables**:
 
-- Change schedule → edit `HOUR_TO_MODE` / workflow, commit + push
-- Pause schedule → Actions → **ValueCloud CPR** → ⋯ → Disable workflow
-- One-off write → Actions → **ValueCloud CPR** → Run workflow → pick mode
-- See last result → open a run → **Summary** tab (OK / FAILED / skipped + mode)
+| Variable | Purpose |
+|---|---|
+| `VALUECLOUD_CPR_ENABLED` | `true` / `false` — pause **cron** only (`false` = no timed writes) |
+| `VALUECLOUD_CPR_SCHEDULE` | JSON hour→mode (Europe/Kyiv). Example below |
 
-**Repo secrets** (Settings → Secrets and variables → Actions):
+```json
+{"8":"Utility first","11":"PV only","13":"Utility first","15":"PV only","17":"Utility first","21":"PV only"}
+```
+
+Allowed modes: `Utility first`, `PV first`, `Utility + PV`, `PV only`.
+
+- **Pause timed CPR:** set `VALUECLOUD_CPR_ENABLED=false` (manual **Run workflow** still works)
+- **Change times:** edit `VALUECLOUD_CPR_SCHEDULE`, save — next hourly cron picks it up
+- **One-off write:** Actions → **ValueCloud CPR** → Run workflow → pick mode
+- **Hard stop everything:** Actions → workflow → Disable
+- **See result:** open a run → **Summary** tab
+
+### Repo secrets
 
 - `VALUECLOUD_USERNAME`, `VALUECLOUD_PASSWORD`, `VALUECLOUD_PN`, `VALUECLOUD_SN`
 - Optional: `VALUECLOUD_DEVCODE` (default 2506), `VALUECLOUD_DEVADDR` (default 1)
@@ -41,9 +55,9 @@ Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yam
 
 ## Behaviour
 
-- **Schedule:** GitHub Actions hourly cron + Kyiv gate (DST-safe)
+- **Schedule:** GitHub Actions hourly cron + Kyiv gate (DST-safe), driven by Actions **variables**
 - **Manual CPR:** HA script or Actions workflow_dispatch
-- **Notifies:** Actions run status in GitHub UI; HA file-sensor notify for local manual CPR only
+- **Notifies:** Actions run Summary; HA file-sensor notify for local manual CPR only
 - **Grid/line poll:** disabled by default (`valuecloud_poll_status.*` kept if you re-enable later)
 
 DTU must stay on **cloud**. EyeBond Local remains optional under `patches/eybond_local/`.

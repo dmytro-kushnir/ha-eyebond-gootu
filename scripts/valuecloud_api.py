@@ -59,14 +59,30 @@ def secrets_from_env() -> dict[str, Any] | None:
     password = clean(os.environ.get("VALUECLOUD_PASSWORD"))
     if not username or not password:
         return None
+    # Strip BOM / zero-width chars from copy-paste into GitHub secrets.
+    for bad in ("\ufeff", "\u200b", "\u200c", "\u200d"):
+        username = username.replace(bad, "")
+        password = password.replace(bad, "")
     return {
         "valuecloud_username": username,
         "valuecloud_password": password,
-        "valuecloud_pn": clean(os.environ.get("VALUECLOUD_PN")),
-        "valuecloud_sn": clean(os.environ.get("VALUECLOUD_SN")),
+        "valuecloud_pn": clean(os.environ.get("VALUECLOUD_PN")).replace("\ufeff", ""),
+        "valuecloud_sn": clean(os.environ.get("VALUECLOUD_SN")).replace("\ufeff", ""),
         "valuecloud_devcode": clean(os.environ.get("VALUECLOUD_DEVCODE")) or "2506",
         "valuecloud_devaddr": clean(os.environ.get("VALUECLOUD_DEVADDR")) or "1",
     }
+
+
+def credential_fingerprint(username: str, password: str) -> str:
+    """Safe debug line — lengths + short hashes, never the secret itself."""
+    u_sha = hashlib.sha256(username.encode("utf-8")).hexdigest()[:12]
+    p_sha = hashlib.sha256(password.encode("utf-8")).hexdigest()[:12]
+    api12 = password_for_api(password)[:12]
+    return (
+        f"cred_fp username_len={len(username)} user_sha256_12={u_sha} "
+        f"has_at={('@' in username)} password_len={len(password)} "
+        f"pass_sha256_12={p_sha} api_sha1_12={api12}"
+    )
 
 
 def resolve_secrets(secrets_path: Path | None = None) -> dict[str, Any]:

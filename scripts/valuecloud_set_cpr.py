@@ -74,7 +74,7 @@ def main() -> int:
 
     session = vc.load_session(username)
     last_error: Exception | None = None
-    write_payload = None
+    write_payload: dict | None = None
     for attempt in range(1, RETRIES + 1):
         try:
             if session is None:
@@ -93,22 +93,40 @@ def main() -> int:
                     "val": val,
                     "i18n": "en_US",
                 },
+                timeout=vc.CTRL_TIMEOUT,
+                soft_device_errors=True,
             )
             last_error = None
             break
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             vc.append_log(log_file(), f"{stamp} attempt {attempt}/{RETRIES} failed: {exc}")
+            # Do not retry soft device errors — command often already applied.
+            if vc.is_soft_device_error(exc):
+                break
             vc.clear_session()
             session = None
 
-    if last_error is not None or write_payload is None:
+    if last_error is not None and write_payload is None:
+        if vc.is_soft_device_error(last_error):
+            write_result(f"{stamp} OK {label} (no cloud ACK; write likely applied)")
+            vc.append_log(log_file(), f"{stamp} SOFT_OK {label} :: {last_error}")
+            print(f"OK write {FIELD_ID}={val} ({label}) — soft OK: {last_error}")
+            return 0
         write_result(f"{stamp} FAILED {label} :: {last_error}")
         raise RuntimeError(str(last_error or "write_failed"))
 
-    write_result(f"{stamp} OK {label}")
-    vc.append_log(log_file(), f"{stamp} OK {label} val={val}")
-    print(f"OK write {FIELD_ID}={val} ({label})")
+    assert write_payload is not None
+    soft = bool(write_payload.get("_soft_ok"))
+    soft_detail = write_payload.get("_soft_detail") or ""
+    if soft:
+        write_result(f"{stamp} OK {label} (no cloud ACK; write likely applied)")
+        vc.append_log(log_file(), f"{stamp} SOFT_OK {label} val={val} :: {soft_detail}")
+        print(f"OK write {FIELD_ID}={val} ({label}) — soft OK: {soft_detail}")
+    else:
+        write_result(f"{stamp} OK {label}")
+        vc.append_log(log_file(), f"{stamp} OK {label} val={val}")
+        print(f"OK write {FIELD_ID}={val} ({label})")
     print(json.dumps({"write": write_payload}, ensure_ascii=False)[:300])
     return 0
 

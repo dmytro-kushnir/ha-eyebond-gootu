@@ -17,8 +17,18 @@ from urllib.request import Request, urlopen
 BASE_URL = "https://api.valueclouds.com/"
 LOGIN_PATH = "ppr/web/login/login"
 TIMEOUT = 20.0
+CTRL_TIMEOUT = 45.0
 SESSION_TTL = 25 * 60
 LOG_MAX_BYTES = 50_000
+
+# Cloud accepted the write but DTU ACK wait timed out — command often still applied.
+SOFT_DEVICE_ERROR_MARKERS = (
+    "device unresponsive",
+    "device offline",
+    "设备无响应",
+    "设备未响应",
+    "无响应",
+)
 
 
 def shell_dir() -> Path:
@@ -155,6 +165,11 @@ def envelope_ok(payload: dict[str, Any]) -> bool:
         return False
 
 
+def is_soft_device_error(detail: object) -> bool:
+    text = str(detail).lower()
+    return any(marker in text for marker in SOFT_DEVICE_ERROR_MARKERS)
+
+
 def sign(secret: str, path: str) -> str:
     return hmac.new(
         secret.encode("utf-8"),
@@ -253,6 +268,8 @@ def signed_get(
     session: dict[str, str],
     path: str,
     params: dict[str, Any],
+    timeout: float = TIMEOUT,
+    soft_device_errors: bool = False,
 ) -> dict[str, Any]:
     url = BASE_URL.rstrip("/") + "/" + path.lstrip("/") + "?" + urlencode(params)
     payload = http_json(
@@ -265,8 +282,15 @@ def signed_get(
                 "vw": "device",
             }
         ),
+        timeout=timeout,
     )
-    if not envelope_ok(payload):
-        detail = payload.get("errorMessage") or payload.get("message") or payload
-        raise RuntimeError(f"api_failed:{detail}")
-    return payload
+    if envelope_ok(payload):
+        return payload
+    detail = payload.get("errorMessage") or payload.get("message") or payload
+    if soft_device_errors and is_soft_device_error(detail):
+        return {
+            **payload,
+            "_soft_ok": True,
+            "_soft_detail": clean(detail),
+        }
+    raise RuntimeError(f"api_failed:{detail}")

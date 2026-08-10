@@ -1,26 +1,50 @@
-# ValueClouds / SmartValue — cloud CPR + status helper for Home Assistant
+# ValueClouds / SmartValue — cloud CPR helper for Home Assistant + GitHub Actions
 #
 # Small shell + Python helper (not a full HACS integration).
 
-## Install
+## CPR schedule owner: GitHub Actions
+
+Clock schedule runs in [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuecloud-cpr.yml) (not HA), so the Pi is not required for timed writes.
+
+| Time (Europe/Kyiv) | Mode |
+|---|---|
+| 08:00, 13:00, 17:00 | Utility first |
+| 11:00, 15:00, 21:00 | PV only |
+
+Edit hours/modes in [`valuecloud_schedule_gate.py`](valuecloud_schedule_gate.py) (`HOUR_TO_MODE`), push, done.
+
+**Control from GitHub**
+
+- Change schedule → edit `HOUR_TO_MODE` / workflow, commit + push
+- Pause schedule → Actions → **ValueCloud CPR** → ⋯ → Disable workflow
+- One-off write → Actions → **ValueCloud CPR** → Run workflow → pick mode
+
+**Repo secrets** (Settings → Secrets and variables → Actions):
+
+- `VALUECLOUD_USERNAME`, `VALUECLOUD_PASSWORD`, `VALUECLOUD_PN`, `VALUECLOUD_SN`
+- Optional: `VALUECLOUD_DEVCODE` (default 2506), `VALUECLOUD_DEVADDR` (default 1)
+- Optional Companion ping from Actions: `HA_URL`, `HA_TOKEN`, `HA_NOTIFY_ENTITY` (default `notify.dk_ha_bd`)  
+  (`HA_URL` must be reachable from the internet, e.g. Nabu Casa / reverse proxy — LAN-only Pi will skip notify)
+
+## Pi / Home Assistant role
+
+Keep HA for WoL, Companion notify on **manual** CPR, and optional one-off script runs. Leave HA automation `gootu_cpr_schedule` **disabled** in the UI while Actions owns the clock (kept in YAML as fallback).
 
 ```bash
 mkdir -p config/shell
 cp patches/valuecloud/valuecloud_api.py config/shell/
 cp patches/valuecloud/valuecloud_set_cpr.py config/shell/
 cp patches/valuecloud/valuecloud_set_cpr.sh config/shell/
-cp patches/valuecloud/valuecloud_poll_status.py config/shell/
-cp patches/valuecloud/valuecloud_poll_status.sh config/shell/
-chmod +x config/shell/valuecloud_set_cpr.sh config/shell/valuecloud_poll_status.sh
+chmod +x config/shell/valuecloud_set_cpr.sh
 ```
 
-Merge YAML snippets; replace `notify.YOUR_NOTIFY_ENTITY`; fill secrets.
+Merge [`configuration.snippet.yaml`](configuration.snippet.yaml) + [`scripts.yaml`](scripts.yaml) + [`automations.yaml`](automations.yaml) (notify only); fill `secrets.yaml`.
 
 ## Behaviour
 
-- **CPR schedule:** 08/13/17 Utility first, 11/15/21 PV only (clock only; do not use SoC in PV-only)
-- **Status poll:** every **3 minutes** via ValueClouds HTTP (`queryDeviceOneDataxxx`) — not local G-ASCII. Safe for the Wi‑Fi stick at this rate; apps refresh more often when open.
-- **Notifies:** CPR result + Mains↔Battery mode changes
-- **SD-friendly:** unchanged polls do not append logs; file sensors scan every 60s; exclude ValueCloud sensors from recorder
+- **Schedule:** GitHub Actions hourly cron + Kyiv gate (DST-safe)
+- **Manual CPR:** HA script or Actions workflow_dispatch
+- **Notifies:** Actions → HA REST (if `HA_URL` public); HA file-sensor notify for local manual CPR
+- **Grid/line poll:** disabled by default (`valuecloud_poll_status.*` kept if you re-enable later)
 
 DTU must stay on **cloud**. EyeBond Local remains optional under `patches/eybond_local/`.

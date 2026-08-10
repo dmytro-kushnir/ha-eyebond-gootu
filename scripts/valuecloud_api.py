@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,20 @@ BASE_URL = "https://api.valueclouds.com/"
 LOGIN_PATH = "ppr/web/login/login"
 TIMEOUT = 20.0
 SESSION_TTL = 25 * 60
-SHELL_DIR = Path("/config/shell")
-SESSION_CACHE = SHELL_DIR / ".valuecloud_session.json"
 LOG_MAX_BYTES = 50_000
+
+
+def shell_dir() -> Path:
+    """HA default `/config/shell`; CI uses `VALUECLOUD_SHELL_DIR` (e.g. runner temp)."""
+    return Path(os.environ.get("VALUECLOUD_SHELL_DIR") or "/config/shell")
+
+
+# Back-compat for callers that read vc.SHELL_DIR (resolved at import — prefer shell_dir()).
+SHELL_DIR = shell_dir()
+
+
+def session_cache_path() -> Path:
+    return shell_dir() / ".valuecloud_session.json"
 
 
 def clean(value: Any) -> str:
@@ -42,6 +54,35 @@ def load_secrets(path: Path) -> dict[str, Any]:
     return data
 
 
+def secrets_from_env() -> dict[str, Any] | None:
+    username = clean(os.environ.get("VALUECLOUD_USERNAME"))
+    password = clean(os.environ.get("VALUECLOUD_PASSWORD"))
+    if not username or not password:
+        return None
+    return {
+        "valuecloud_username": username,
+        "valuecloud_password": password,
+        "valuecloud_pn": clean(os.environ.get("VALUECLOUD_PN")),
+        "valuecloud_sn": clean(os.environ.get("VALUECLOUD_SN")),
+        "valuecloud_devcode": clean(os.environ.get("VALUECLOUD_DEVCODE")) or "2506",
+        "valuecloud_devaddr": clean(os.environ.get("VALUECLOUD_DEVADDR")) or "1",
+    }
+
+
+def resolve_secrets(secrets_path: Path | None = None) -> dict[str, Any]:
+    """Prefer env vars (CI); else HA secrets.yaml."""
+    env = secrets_from_env()
+    if env is not None:
+        return env
+    path = secrets_path or Path("/config/secrets.yaml")
+    if not path.is_file():
+        raise SystemExit(
+            "Need VALUECLOUD_* env vars or a secrets.yaml "
+            f"(missing {path})"
+        )
+    return load_secrets(path)
+
+
 def device_ids(secrets: dict[str, Any]) -> tuple[str, str, str, str, int, int]:
     username = clean(secrets.get("valuecloud_username"))
     password = clean(secrets.get("valuecloud_password"))
@@ -50,9 +91,9 @@ def device_ids(secrets: dict[str, Any]) -> tuple[str, str, str, str, int, int]:
     devcode = int(clean(secrets.get("valuecloud_devcode")) or "2506")
     devaddr = int(clean(secrets.get("valuecloud_devaddr")) or "1")
     if not username or not password:
-        raise SystemExit("secrets.yaml needs valuecloud_username and valuecloud_password")
+        raise SystemExit("need valuecloud_username and valuecloud_password")
     if not pn or not sn:
-        raise SystemExit("secrets.yaml needs valuecloud_pn and valuecloud_sn")
+        raise SystemExit("need valuecloud_pn and valuecloud_sn")
     return username, password, pn, sn, devcode, devaddr
 
 
@@ -129,14 +170,15 @@ def rotate_log(path: Path, max_bytes: int = LOG_MAX_BYTES) -> None:
 
 def append_log(path: Path, line: str) -> None:
     rotate_log(path)
-    SHELL_DIR.mkdir(parents=True, exist_ok=True)
+    shell_dir().mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(line.rstrip() + "\n")
 
 
 def load_session(account: str) -> dict[str, str] | None:
+    cache = session_cache_path()
     try:
-        raw = json.loads(SESSION_CACHE.read_text(encoding="utf-8"))
+        raw = json.loads(cache.read_text(encoding="utf-8"))
     except Exception:
         return None
     if not isinstance(raw, dict) or clean(raw.get("account")) != account:
@@ -153,8 +195,9 @@ def load_session(account: str) -> dict[str, str] | None:
 
 
 def save_session(account: str, session: dict[str, str]) -> None:
-    SHELL_DIR.mkdir(parents=True, exist_ok=True)
-    SESSION_CACHE.write_text(
+    cache = session_cache_path()
+    shell_dir().mkdir(parents=True, exist_ok=True)
+    cache.write_text(
         json.dumps(
             {
                 "account": account,
@@ -167,14 +210,14 @@ def save_session(account: str, session: dict[str, str]) -> None:
         encoding="utf-8",
     )
     try:
-        SESSION_CACHE.chmod(0o600)
+        cache.chmod(0o600)
     except OSError:
         pass
 
 
 def clear_session() -> None:
     try:
-        SESSION_CACHE.unlink(missing_ok=True)
+        session_cache_path().unlink(missing_ok=True)
     except OSError:
         pass
 

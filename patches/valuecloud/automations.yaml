@@ -1,14 +1,17 @@
-# Cloud CPR schedule + status poll / notifies (HA timezone).
+# HA-side ValueCloud helpers.
 # Replace notify.YOUR_NOTIFY_ENTITY.
 #
-# CPR: 08/13/17 Utility first | 11/15/21 PV only (no SoC — unreliable in PV-only)
-# Status poll every 3 min via cloud HTTP (not local G-ASCII bus)
+# CPR clock schedule is owned by GitHub Actions by default.
+# Keep gootu_cpr_schedule in YAML as fallback — leave it DISABLED in HA UI
+# (or initial_state: false) so it does not double-write with Actions.
 
 - id: gootu_cpr_schedule
   alias: Gootu CPR — day/night schedule
   description: >-
     Clock-based charging priority (no SoC). Utility first at 08/13/17,
-    PV only at 11/15/21.
+    PV only at 11/15/21. Prefer GitHub Actions; keep this DISABLED unless
+    Actions is paused.
+  initial_state: false
   mode: single
   triggers:
     - trigger: time
@@ -36,25 +39,13 @@
       data:
         mode: "{{ mode }}"
 
-- id: valuecloud_poll_status_every_3m
-  alias: ValueCloud — poll operating mode every 3 min
-  description: Refresh sy_status from ValueClouds for grid-lost / restored notifies.
-  mode: single
-  triggers:
-    - trigger: time_pattern
-      minutes: /3
-  actions:
-    - action: shell_command.valuecloud_poll_status
-
 - id: valuecloud_notify
-  alias: ValueCloud — notify CPR or mode change
-  description: Phone notify when CPR result or Mains↔Battery event file changes.
+  alias: ValueCloud — notify CPR result
+  description: Phone notify when cloud CPR write updates the result file (manual HA path).
   mode: single
   triggers:
     - trigger: state
-      entity_id:
-        - sensor.valuecloud_cpr_last
-        - sensor.valuecloud_mode_event
+      entity_id: sensor.valuecloud_cpr_last
       not_to:
         - unknown
         - unavailable

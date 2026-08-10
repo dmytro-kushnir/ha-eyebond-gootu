@@ -1,30 +1,23 @@
 # Gootu charging priority (CPR)
 
-Two ways to drive CPR from Home Assistant:
+## Recommended: GitHub Actions schedule + optional HA on Pi
 
-1. **ValueClouds cloud (recommended when LAN polls stall)** — `patches/valuecloud/`  
-   See below and [patches/valuecloud/README.md](patches/valuecloud/README.md).
-2. **EyeBond Local (LAN)** — `patches/eybond_local/`  
-   Local select entity; kept for backward compatibility.
+Timed CPR writes run in **GitHub Actions** (same ValueClouds API as the website). Home Assistant on the Pi stays useful for **WoL**, **Companion notifies**, and **manual** CPR — not for the clock schedule.
 
----
-
-## ValueClouds via Home Assistant (cloud write-only)
-
-HA switches charging priority by calling the same **ValueClouds / SmartValue** API as the website. No EyeBond Local required. No live cloud sensors — **write-only**.
+See [patches/valuecloud/README.md](patches/valuecloud/README.md) and [`.github/workflows/valuecloud-cpr.yml`](.github/workflows/valuecloud-cpr.yml).
 
 | Piece | Role |
 |---|---|
-| `secrets.yaml` | SmartValue email + password + device `pn` / `sn` |
-| `config/shell/valuecloud_api.py` | Shared login / session / signed requests |
-| `config/shell/valuecloud_set_cpr.sh` | HA entry; runs writer in **background** (HA 60s shell limit) |
-| `config/shell/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result file |
-| `config/shell/valuecloud_poll_status.*` | Poll `sy_status` (Mains / Battery) |
-| Script **ValueCloud — set charging priority** | Manual / automation trigger |
-| `sensor.valuecloud_cpr_last` / `sensor.valuecloud_mode_event` | Result + mode-change event files |
-| Poll every **3 min** | Cloud HTTP status (safe for Wi‑Fi DTU at this rate) |
-| Notify automation | CPR result or Mains↔Battery change |
-| CPR schedule (clock only; SoC unreliable in PV-only) | see table below |
+| GitHub Actions `ValueCloud CPR` | Clock schedule (Europe/Kyiv) + manual dispatch |
+| `patches/valuecloud/valuecloud_schedule_gate.py` | Hour → mode map (edit to change schedule) |
+| `patches/valuecloud/valuecloud_set_cpr.py` | Login → `ctrlDevice` → result |
+| Actions secrets `VALUECLOUD_*` | SmartValue credentials + device `pn` / `sn` |
+| Optional `HA_URL` / `HA_TOKEN` | Companion notify after Actions CPR (needs public HA URL) |
+| Pi `script.valuecloud_set_charging_priority` | Manual CPR from HA |
+| Pi `sensor.valuecloud_cpr_last` + notify automation | Companion on **local** manual CPR result file |
+| Pi WoL | Unrelated; keep as-is |
+
+**Keep** HA automation `gootu_cpr_schedule` in YAML but **disabled** in the UI while Actions owns the clock — re-enable only if Actions is paused.
 
 ### CPR schedule (Europe/Kyiv)
 
@@ -40,22 +33,16 @@ HA switches charging priority by calling the same **ValueClouds / SmartValue** A
 Do **not** drive CPR from battery % — ValueClouds SoC is wrong while in PV only.
 
 ```text
-Automation or manual script
-        → shell_command → valuecloud_set_cpr.sh (returns immediately)
-        → (background) login api.valueclouds.com
+GitHub Actions (hourly) or workflow_dispatch
+        → valuecloud_schedule_gate.py (Europe/Kyiv)
+        → valuecloud_set_cpr.py
+        → login api.valueclouds.com
         → ctrlDevice cltd_charging_priority
         → inverter ACK via DTU cloud link
-        → valuecloud_last_result.txt → sensor → notify
+        → optional HA REST notify
 ```
 
-DTU must stay on **cloud**. Install steps: [patches/valuecloud/README.md](patches/valuecloud/README.md).
-
-Debug:
-
-```bash
-docker exec homeassistant tail -40 /config/shell/valuecloud_cpr.log
-docker exec homeassistant cat /config/shell/valuecloud_last_result.txt
-```
+DTU must stay on **cloud**.
 
 ---
 

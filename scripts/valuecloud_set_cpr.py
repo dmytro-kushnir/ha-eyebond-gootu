@@ -15,8 +15,6 @@ CTRL_PATH = "ppe/api/auth/web/ctrlDevice"
 FIELD_ID = "cltd_charging_priority"
 DATATYPE = 3
 RETRIES = 3
-RESULT_FILE = vc.SHELL_DIR / "valuecloud_last_result.txt"
-LOG_FILE = vc.SHELL_DIR / "valuecloud_cpr.log"
 
 MODE_TO_VAL = {
     "utility first": 12336,
@@ -44,18 +42,31 @@ def resolve_mode(mode: str) -> int:
     return MODE_TO_VAL[key]
 
 
+def result_file() -> Path:
+    return vc.shell_dir() / "valuecloud_last_result.txt"
+
+
+def log_file() -> Path:
+    return vc.shell_dir() / "valuecloud_cpr.log"
+
+
 def write_result(line: str) -> None:
-    vc.SHELL_DIR.mkdir(parents=True, exist_ok=True)
-    RESULT_FILE.write_text(line.strip() + "\n", encoding="utf-8")
+    vc.shell_dir().mkdir(parents=True, exist_ok=True)
+    result_file().write_text(line.strip() + "\n", encoding="utf-8")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", required=True)
-    parser.add_argument("--secrets", default="/config/secrets.yaml")
+    parser.add_argument(
+        "--secrets",
+        default=None,
+        help="HA secrets.yaml path (optional when VALUECLOUD_* env is set)",
+    )
     args = parser.parse_args()
 
-    secrets = vc.load_secrets(Path(args.secrets))
+    secrets_path = Path(args.secrets) if args.secrets else None
+    secrets = vc.resolve_secrets(secrets_path)
     username, password, pn, sn, devcode, devaddr = vc.device_ids(secrets)
     val = resolve_mode(args.mode)
     label = VAL_TO_LABEL[val]
@@ -87,7 +98,7 @@ def main() -> int:
             break
         except Exception as exc:  # noqa: BLE001
             last_error = exc
-            vc.append_log(LOG_FILE, f"{stamp} attempt {attempt}/{RETRIES} failed: {exc}")
+            vc.append_log(log_file(), f"{stamp} attempt {attempt}/{RETRIES} failed: {exc}")
             vc.clear_session()
             session = None
 
@@ -96,7 +107,7 @@ def main() -> int:
         raise RuntimeError(str(last_error or "write_failed"))
 
     write_result(f"{stamp} OK {label}")
-    vc.append_log(LOG_FILE, f"{stamp} OK {label} val={val}")
+    vc.append_log(log_file(), f"{stamp} OK {label} val={val}")
     print(f"OK write {FIELD_ID}={val} ({label})")
     print(json.dumps({"write": write_payload}, ensure_ascii=False)[:300])
     return 0

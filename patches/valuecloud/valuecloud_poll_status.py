@@ -14,10 +14,20 @@ import valuecloud_api as vc
 
 STATUS_PATH = "ppe/api/auth/web/queryDeviceOneDataxxx"
 RETRIES = 3
-MODE_FILE = vc.SHELL_DIR / "valuecloud_operating_mode.txt"
-EVENT_FILE = vc.SHELL_DIR / "valuecloud_mode_event.txt"
-STATUS_JSON = vc.SHELL_DIR / "valuecloud_last_status.json"
-LOG_FILE = vc.SHELL_DIR / "valuecloud_status.log"
+def mode_file() -> Path:
+    return vc.shell_dir() / "valuecloud_operating_mode.txt"
+
+
+def event_file() -> Path:
+    return vc.shell_dir() / "valuecloud_mode_event.txt"
+
+
+def status_json() -> Path:
+    return vc.shell_dir() / "valuecloud_last_status.json"
+
+
+def log_file() -> Path:
+    return vc.shell_dir() / "valuecloud_status.log"
 
 
 def field_map(rows: list[dict[str, Any]]) -> dict[str, str]:
@@ -31,10 +41,15 @@ def field_map(rows: list[dict[str, Any]]) -> dict[str, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--secrets", default="/config/secrets.yaml")
+    parser.add_argument(
+        "--secrets",
+        default=None,
+        help="HA secrets.yaml path (optional when VALUECLOUD_* env is set)",
+    )
     args = parser.parse_args()
 
-    secrets = vc.load_secrets(Path(args.secrets))
+    secrets_path = Path(args.secrets) if args.secrets else None
+    secrets = vc.resolve_secrets(secrets_path)
     username, password, pn, sn, devcode, devaddr = vc.device_ids(secrets)
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
@@ -65,7 +80,7 @@ def main() -> int:
             break
         except Exception as exc:  # noqa: BLE001
             last_error = exc
-            vc.append_log(LOG_FILE, f"{stamp} attempt {attempt}/{RETRIES} failed: {exc}")
+            vc.append_log(log_file(), f"{stamp} attempt {attempt}/{RETRIES} failed: {exc}")
             vc.clear_session()
             session = None
 
@@ -77,14 +92,15 @@ def main() -> int:
     grid_v = fields.get("gd_grid_voltage") or ""
     soc = fields.get("bt_battery_capacity") or ""
 
-    vc.SHELL_DIR.mkdir(parents=True, exist_ok=True)
-    previous = MODE_FILE.read_text(encoding="utf-8").strip() if MODE_FILE.is_file() else ""
-    MODE_FILE.write_text(mode + "\n", encoding="utf-8")
+    vc.shell_dir().mkdir(parents=True, exist_ok=True)
+    mf, ef, sj, lf = mode_file(), event_file(), status_json(), log_file()
+    previous = mf.read_text(encoding="utf-8").strip() if mf.is_file() else ""
+    mf.write_text(mode + "\n", encoding="utf-8")
 
     changed = bool(previous and previous != mode)
     # Only rewrite status JSON / log when something useful changed (SD wear).
-    if changed or not STATUS_JSON.is_file():
-        STATUS_JSON.write_text(
+    if changed or not sj.is_file():
+        sj.write_text(
             json.dumps(
                 {
                     "sy_status": mode,
@@ -113,8 +129,8 @@ def main() -> int:
             )
         else:
             event = f"{stamp} Gootu mode changed: {previous} → {mode}"
-        EVENT_FILE.write_text(event + "\n", encoding="utf-8")
-        vc.append_log(LOG_FILE, event)
+        ef.write_text(event + "\n", encoding="utf-8")
+        vc.append_log(lf, event)
         print(f"CHANGED {previous!r} -> {mode!r}")
         print(event)
     else:
@@ -128,5 +144,8 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:  # noqa: BLE001
         print(f"FAILED: {exc}", file=sys.stderr)
-        vc.append_log(LOG_FILE, f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} FAILED: {exc}")
+        vc.append_log(
+            log_file(),
+            f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} FAILED: {exc}",
+        )
         raise SystemExit(1) from exc

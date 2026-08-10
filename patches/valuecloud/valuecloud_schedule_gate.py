@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("Europe/Kyiv")
-SLOT_GRACE = timedelta(minutes=20)
+SLOT_GRACE = timedelta(minutes=55)
 
 DEFAULT_SCHEDULE = {
     "8:00": "Utility first",

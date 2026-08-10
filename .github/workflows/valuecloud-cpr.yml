@@ -8,8 +8,9 @@
 #   VALUECLOUD_CPR_SCHEDULE  JSON time→mode (Europe/Kyiv), e.g. "13:50" or "13" (=13:00).
 #                            No reload needed after editing; next */15 cron reads it.
 #
-# Cron runs every 15 minutes (GitHub hourly cron is often late/missed). Cache ensures
-# each Kyiv schedule hour writes at most once.
+# Cron: hourly + every 15m (GitHub often delays/skips a single schedule).
+# Kyiv gate + variables decide whether to write; cache = at most once per slot.
+# Viewing an old run's "workflow" tab shows that commit's YAML — not necessarily current master.
 #
 # Results: open the run → Summary tab
 
@@ -17,6 +18,8 @@ name: ValueCloud CPR
 
 on:
   schedule:
+    # Redundant schedules: GitHub may delay one cron by ~1h and skip others while queued.
+    - cron: "5 * * * *"
     - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:

@@ -27,7 +27,9 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **Variab
 ```
 
 Allowed modes: `Utility first`, `PV first`, `Utility + PV`, `PV only`.  
-Each slot stays active for **20 minutes** so a late Actions cron can still hit it. Save the variable — **no commit / reload**; the next `*/15` run reads it.
+Each slot stays active for **55 minutes** so a late Actions cron can still hit it. Save the variable — **no commit / reload**; the next schedule run reads it.
+
+**Note:** Opening an old Actions run → “workflow” file shows the YAML **from that commit**. Current cron is on `master` (`5 * * * *` plus `*/15 * * * *`). Event column `schedule` = cron; GitHub may delay starts by many minutes.
 
 - **Pause timed CPR:** set `VALUECLOUD_CPR_ENABLED=false` (manual **Run workflow** still works)
 - **Change times:** edit `VALUECLOUD_CPR_SCHEDULE`, save — next hourly cron picks it up

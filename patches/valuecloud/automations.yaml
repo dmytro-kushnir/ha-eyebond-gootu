@@ -55,3 +55,43 @@
         entity_id: notify.YOUR_NOTIFY_ENTITY
       data:
         message: "{{ trigger.to_state.state }}"
+
+# One delayed retry after network timeout (not for Device unresponsive soft-OK).
+- id: valuecloud_cpr_network_retry
+  alias: ValueCloud — retry CPR once after network timeout
+  description: >-
+    If CPR result is FAILED … [retryable] (network timeout), wait 10 minutes
+    and send the same mode once more with --from-retry.
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: sensor.valuecloud_cpr_last
+      not_to:
+        - unknown
+        - unavailable
+        - none
+        - ""
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ trigger.to_state.state != trigger.from_state.state
+           and 'FAILED' in trigger.to_state.state
+           and '[retryable]' in trigger.to_state.state
+           and ('network:' in trigger.to_state.state
+                or 'timed out' in trigger.to_state.state
+                or 'timeout' in trigger.to_state.state | lower) }}
+  actions:
+    - delay: "00:10:00"
+    - variables:
+        mode: >-
+          {% set s = states('sensor.valuecloud_cpr_last') %}
+          {% if 'Utility first' in s %}Utility first
+          {% elif 'PV only' in s %}PV only
+          {% elif 'PV first' in s %}PV first
+          {% elif 'Utility + PV' in s %}Utility + PV
+          {% else %}{% endif %}
+    - condition: template
+      value_template: "{{ mode | length > 0 and '[retryable]' in states('sensor.valuecloud_cpr_last') }}"
+    - action: shell_command.valuecloud_set_cpr_retry
+      data:
+        mode: "{{ mode }}"

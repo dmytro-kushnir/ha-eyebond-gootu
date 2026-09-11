@@ -41,6 +41,7 @@ Workflow [`.github/workflows/valuecloud-cpr.yml`](../../.github/workflows/valuec
 
 - **Schedule:** HA time triggers (primary)
 - **Manual CPR:** HA script or Actions workflow_dispatch
+- **Network timeout:** one automatic retry after 10 minutes (`[retryable]` → `--from-retry`)
 - **Notifies:** HA Companion on local CPR result file
 - **Grid/line poll:** disabled by default
 

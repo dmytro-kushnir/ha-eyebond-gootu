@@ -55,6 +55,11 @@ def write_result(line: str) -> None:
     result_file().write_text(line.strip() + "\n", encoding="utf-8")
 
 
+def is_network_timeout(exc: object) -> bool:
+    text = str(exc).lower()
+    return "network:" in text and ("timed out" in text or "timeout" in text)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", required=True)
@@ -62,6 +67,11 @@ def main() -> int:
         "--secrets",
         default=None,
         help="HA secrets.yaml path (optional when VALUECLOUD_* env is set)",
+    )
+    parser.add_argument(
+        "--from-retry",
+        action="store_true",
+        help="HA delayed retry — on network fail do not mark [retryable] again",
     )
     args = parser.parse_args()
 
@@ -113,7 +123,10 @@ def main() -> int:
             vc.append_log(log_file(), f"{stamp} SOFT_OK {label} :: {last_error}")
             print(f"OK write {FIELD_ID}={val} ({label}) — soft OK: {last_error}")
             return 0
-        write_result(f"{stamp} FAILED {label} :: {last_error}")
+        tag = ""
+        if is_network_timeout(last_error):
+            tag = " [retried]" if args.from_retry else " [retryable]"
+        write_result(f"{stamp} FAILED {label} :: {last_error}{tag}")
         raise RuntimeError(str(last_error or "write_failed"))
 
     assert write_payload is not None
@@ -136,9 +149,5 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:  # noqa: BLE001
         print(f"FAILED: {exc}", file=sys.stderr)
-        try:
-            stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-            write_result(f"{stamp} FAILED :: {exc}")
-        except Exception:
-            pass
+        # main() already wrote a FAILED line with mode when possible — do not overwrite.
         raise SystemExit(1) from exc

@@ -2,6 +2,7 @@
 # Grid/line status poll is optional — not wired by default.
 shell_command:
   valuecloud_set_cpr: '/config/shell/valuecloud_set_cpr.sh "{{ mode }}"'
+  valuecloud_set_cpr_retry: '/config/shell/valuecloud_set_cpr.sh "{{ mode }}" --from-retry'
 
 # File sensor — 60s scan to limit SD wear (state only changes on file updates).
 command_line:

@@ -9,7 +9,8 @@ See [patches/valuecloud/README.md](patches/valuecloud/README.md).
 | Piece | Role |
 |---|---|
 | HA `gootu_cpr_schedule` | Primary clock: 08/14/17 Utility first, 11/15/21 PV only |
-| `patches/valuecloud/valuecloud_set_cpr.py` | Login → `ctrlDevice` (treats Device unresponsive as soft OK) |
+| HA `valuecloud_cpr_network_retry` | One 10‑min retry after `network:timed out` `[retryable]` |
+| `patches/valuecloud/valuecloud_set_cpr.py` | Login → `ctrlDevice` (Device unresponsive = soft OK; network timeout = `[retryable]`) |
 | Pi secrets + shell scripts | Credentials on the HA host |
 | `sensor.valuecloud_cpr_last` + notify | Companion on HA CPR result |
 | GitHub Actions (optional) | Manual/backup only — keep disabled or `VALUECLOUD_CPR_ENABLED=false` |
